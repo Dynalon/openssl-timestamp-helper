@@ -1,4 +1,10 @@
+"use strict";
+var promisify = require("bluebird").promisify;
+
 import {exec} from "./exechelper";
+import {Log} from "./logging";
+import {openssl} from "./provider";
+import * as fs from "fs";
 
 export class TimestampQuery {
     public outFile: string;
