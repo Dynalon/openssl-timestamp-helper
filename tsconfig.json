@@ -1,0 +1,12 @@
+{
+	"files": [
+		"src/tool.ts",
+		"src/exechelper.ts",
+		"typings/main.d.ts"
+	],
+	"compilerOptions": {
+		"module": "commonjs",
+		"target": "es6",
+		"outFile": "index.js"
+	}
+}

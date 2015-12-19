@@ -1,0 +1,7 @@
+src/*.js
+typings/
+node_modules/
+
+.DS_Store
+.npm-*.log
+

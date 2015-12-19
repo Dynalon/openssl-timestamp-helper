@@ -1,0 +1,9 @@
+{
+  "ambientDependencies": {
+    "node": "github:DefinitelyTyped/DefinitelyTyped/node/node.d.ts#5cb07b53719466b27cb32f3eb2c7c3e22575ecda",
+    "winston": "github:DefinitelyTyped/DefinitelyTyped/winston/winston.d.ts#59637e7da6dad1d7a6361efc4373459868d1ffb8"
+  },
+  "dependencies": {
+    "minimist": "github:typings/typed-minimist#9bfb8ebb1cf82abe2e16b00d6e0f59492224728e"
+  }
+}
