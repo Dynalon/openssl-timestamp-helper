@@ -2,6 +2,9 @@ src/*.js
 typings/
 node_modules/
 
+*.pem
+*.tsr
+*.tsq
 .DS_Store
 .npm-*.log
 

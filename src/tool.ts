@@ -4,12 +4,30 @@ import {Log} from "./logging";
 import {TimestampQuery} from "./timestampQuery";
 import {TimestampRequest} from "./timestampRequest";
 import * as P from "./provider";
-var colors = require("colors");
-
 import * as parseArgs from "minimist";
-
+require('colors');
+require('js-array-extensions');
 
 class Main {
+
+    async timestampFile(path, provider) {
+        let query = new TimestampQuery(path, false);
+        await query.createQuery();
+
+        let request = new TimestampRequest(query, provider);
+        await request.sendRequest();
+        await request.writeOutfile();
+
+        return {
+            query: query,
+            request: request
+        };
+    }
+
+    async verifyFile(path, provider) {
+        // TODO cache certificate chain
+    };
+
     async run(argv: string[]) {
 
         // process.argv[0] = 'node', process.argv[1] = our script name, so remove the first
@@ -27,14 +45,26 @@ class Main {
 
         for (let file of files) {
             try {
-                let query = new TimestampQuery(file, false);
-                let queryContent = await query.createQuery();
-                await query.writeOutfile();
+                let result = await this.timestampFile(file, new P.DfnProvider());
+                let queryInfo = await result.query.getHumanReadableInfo();
+                let requestInfo = await result.request.getHumanReadableInfo();
 
-                let request = new TimestampRequest(queryContent, new P.DfnProvider());
-                await request.sendRequest();
+                let timestamp = requestInfo.split("\n")
+                    .filter(line => line.startsWith("Time stamp: "))
+                    .firstOrDefault()
+                    .substring("Time stamp: ".length);
+
+                let status = requestInfo.split("\n")
+                    .filter(line => line.startsWith("Status: Granted")).firstOrDefault();
+
+                if (status && timestamp) {
+                    let msg: string = `[ OK ] [ ${timestamp} ] ${file}`;
+                    console.log(msg.yellow);
+
+                } else throw "Unexpected output received";
             } catch (err) {
-                console.log(err);
+                let msg: string = `[ ERROR ] could not timestamp file ${file}: ${err}`;
+                console.log(msg.red);
             }
         }
         return Promise.resolve();

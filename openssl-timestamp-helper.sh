@@ -1,6 +1,7 @@
 #/bin/
 
 # request erstellen (nur lokal), endung = tsq (time stamp query)
+# no_nonce besser weglassen (ist wie ein salt)
 # openssl ts -query -data plunk.zip -cert -sha256 -no_nonce -out plunk.zip.tsq
 
 # Anzeigen des Queries in menschenlesbarer Form (halbwegs)
@@ -23,5 +24,5 @@
 
 # Verifizieren des Zeitstempels mittels Zertifikat(skette) des Anbieters
 # Dabei muss natürlich die originaldatei mitangegeben werden wegen der Prüfsumme
-# openssl ts -verify -in plunk.zip.tsr -data plunk.zip dfn-cert-chain.pem
+# openssl ts -verify -in plunk.zip.tsr -data plunk.zip -CAfile dfn-cert-chain.pem
 

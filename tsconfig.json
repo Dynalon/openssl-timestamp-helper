@@ -2,11 +2,11 @@
 	"files": [
 		"src/tool.ts",
 		"src/exechelper.ts",
+		"src/colors.d.ts",
 		"typings/main.d.ts"
 	],
 	"compilerOptions": {
 		"module": "commonjs",
-		"target": "es6",
-		"outFile": "index.js"
+		"target": "es6"
 	}
 }
