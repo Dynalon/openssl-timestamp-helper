@@ -2,6 +2,9 @@
 
 import {Log} from "./logging";
 import {TimestampQuery} from "./timestampQuery";
+import {TimestampRequest} from "./timestampRequest";
+import * as P from "./provider";
+var colors = require("colors");
 
 import * as parseArgs from "minimist";
 
@@ -17,17 +20,21 @@ class Main {
         if (typeof args.provider === 'string') {
             provider.push(args.provider);
         } else if (typeof args.provider === 'Array') {
-            provider = args.provider;
+            provider.concat(args.provider);
         }
 
         let files: string[] = args._;
 
         for (let file of files) {
             try {
-                let query = new TimestampQuery(file);
-                await query.createQuery();
+                let query = new TimestampQuery(file, false);
+                let queryContent = await query.createQuery();
                 await query.writeOutfile();
+
+                let request = new TimestampRequest(queryContent, new P.DfnProvider());
+                await request.sendRequest();
             } catch (err) {
+                console.log(err);
             }
         }
         return Promise.resolve();
