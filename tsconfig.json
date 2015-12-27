@@ -1,6 +1,6 @@
 {
   "files": [
-    "src/tool.ts",
+    "src/main.ts",
     "src/colors.d.ts",
     "typings/main.d.ts"
   ],
