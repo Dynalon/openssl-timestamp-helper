@@ -1,11 +1,12 @@
 "use strict"
+require ("colors");
 
 export class Log {
     static info(msg) {
         console.log("INFO:" + msg);
     }
     static error(msg) {
-        console.log("ERROR: " + msg);
+        console.log(msg.red.bold);
     }
     static cmd(msg) {
         console.log("CMD: " + msg);
@@ -14,6 +15,6 @@ export class Log {
         console.log("DEBUG: " + msg);
     }
     static warn(msg) {
-        console.log("WARN: " + msg);
+        console.log("WARN: " + msg.yellow);
     }
 }

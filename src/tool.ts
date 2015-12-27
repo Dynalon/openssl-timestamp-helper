@@ -3,14 +3,19 @@
 import {Log} from "./logging";
 import {TimestampQuery} from "./timestampQuery";
 import {TimestampRequest} from "./timestampRequest";
+import {TimestampVerify} from "./timestampVerify";
 import * as P from "./provider";
+
+import * as fs from "fs";
 import * as parseArgs from "minimist";
+
+var promisify = require("bluebird").promisify;
 require('colors');
-require('js-array-extensions');
+
 
 class Main {
 
-    async timestampFile(path, provider) {
+    async timestampFile(path: string, provider: P.TimestampProvider, verify?: boolean) {
         let query = new TimestampQuery(path, false);
         await query.createQuery();
 
@@ -24,8 +29,14 @@ class Main {
         };
     }
 
-    async verifyFile(path, provider) {
-        // TODO cache certificate chain
+    async verifyFile(originalFile, requestFile, provider): Promise<void> {
+        let verify = new TimestampVerify(originalFile, requestFile, provider);
+        let valid = await verify.verifyRequest();
+        if (!valid) {
+            // delete the .tsr file again
+            fs.unlinkSync(requestFile);
+            throw new Error("Verification failed");
+        }
     };
 
     async run(argv: string[]) {
@@ -34,37 +45,37 @@ class Main {
         // two elements
         let args: any = parseArgs(argv.slice(2));
 
-        let provider: string[] = [];
+        let wantedProvider: string[] = [];
         if (typeof args.provider === 'string') {
-            provider.push(args.provider);
+            wantedProvider.push(args.provider);
         } else if (typeof args.provider === 'Array') {
-            provider.concat(args.provider);
+            wantedProvider.concat(args.provider);
         }
 
+        let skipVerification = false;
+        let saveQuery = false;
         let files: string[] = args._;
+        let provider = new P.DfnProvider();
 
         for (let file of files) {
             try {
-                let result = await this.timestampFile(file, new P.DfnProvider());
-                let queryInfo = await result.query.getHumanReadableInfo();
-                let requestInfo = await result.request.getHumanReadableInfo();
+                let result = await this.timestampFile(file, provider);
+                let timestamp = await result.request.getTimestamp();
 
-                let timestamp = requestInfo.split("\n")
-                    .filter(line => line.startsWith("Time stamp: "))
-                    .firstOrDefault()
-                    .substring("Time stamp: ".length);
+                // verify with the cert of provider to be sure everything went well
+                let verificationMsg = '[ UNVERIFIED ]'.bold;
 
-                let status = requestInfo.split("\n")
-                    .filter(line => line.startsWith("Status: Granted")).firstOrDefault();
+                if (!skipVerification) {
+                    await this.verifyFile(result.query.inFile, result.request.outFile, provider);
+                    verificationMsg = '[ VERIFIED ]'.bold;
+                }
 
-                if (status && timestamp) {
-                    let msg: string = `[ OK ] [ ${timestamp} ] ${file}`;
-                    console.log(msg.yellow);
-
-                } else throw "Unexpected output received";
+                let msg: string = '[ OK ] '.green.bold.toString() + verificationMsg;
+                msg += ` [ ${timestamp} ] ${result.query.inFile} -> ${result.request.outFile}`;
+                console.log(msg);
             } catch (err) {
-                let msg: string = `[ ERROR ] could not timestamp file ${file}: ${err}`;
-                console.log(msg.red);
+                let msg: string = `could not timestamp file ${file}: ${err}`;
+                Log.error(msg);
             }
         }
         return Promise.resolve();

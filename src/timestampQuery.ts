@@ -1,20 +1,25 @@
 "use strict";
 var promisify = require("bluebird").promisify;
-var MemoryStream = require("memory-stream");
+
 import {exec} from "./exechelper";
 import {spawn} from "child_process";
 import {Log} from "./logging";
 import {openssl} from "./provider";
 import * as fs from "fs";
-var BPromise = require("bluebird").Promise;
 
 export class TimestampQuery {
-    public outFile: string;
+    private outFile: string;
     public inFile: string;
     public queryContent = new Buffer('');
 
     constructor(inFile: string, private useNonce?: boolean) {
         this.inFile = inFile;
+        try {
+            let stat = fs.statSync(this.inFile);
+        } catch (err) {
+            Log.error(`File ${this.inFile} does not exist or is not a valid file`);
+            throw new Error();
+        }
         this.outFile = `${this.inFile}.tsq`;
         if (useNonce === undefined) this.useNonce = true;
     }
@@ -23,25 +28,34 @@ export class TimestampQuery {
      * Returns the binary output of a request (.tsq file) as Buffer.
      */
     async createQuery(): Promise<Buffer> {
-        let dfd = BPromise.defer();
+        return new Promise<Buffer>((resolve, reject) => {
+            // TODO Mac OS X / Homebrew openssl does not support sha256??
+            let args: string[] = ["ts", "-query", "-sha1", "-cert"];
+            args = args.concat(["-data", this.inFile]);
+            if (!this.useNonce) args.push("-no_nonce");
 
-        // TODO Mac OS X / Homebrew openssl does not support sha256??
-        let args: string[] = ["ts", "-query", "-sha1", "-cert"];
-        args = args.concat(["-data", this.inFile]);
-        if (!this.useNonce) args.push("-no_nonce");
-
-        let proc = spawn(openssl, args);
-        proc.stdout.on('data', data => {
-            this.queryContent = Buffer.concat([this.queryContent, data]);
+            let proc = spawn(openssl, args);
+            proc.stdout.on('data', data => {
+                this.queryContent = Buffer.concat([this.queryContent, data]);
+            });
+            proc.stdout.on('finish', () => {
+                resolve(this.queryContent);
+            });
         });
-        proc.stdout.on('finish', () => {
-            dfd.resolve(this.queryContent);
-        });
-        return dfd.promise;
     }
 
-    async writeOutfile(path?: string) {
-        if (!path) path = `${this.inFile}.tsq`;
+    async writeOutfile(path?: string, overwrite?: boolean) {
+        if (!path) path = this.outFile;
+
+        try {
+            let stat = fs.statSync(path);
+        } catch (err) {
+            if (overwrite !== true ) {
+                Log.error(`Query output ${path} does already exists, will not overwrite (use --overwrite to force output)`);
+                throw err;
+            }
+        }
+
         let writeFile = promisify(fs.writeFile);
 
         try {
