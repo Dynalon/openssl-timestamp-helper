@@ -1,6 +1,7 @@
 src/*.js
 typings/
 node_modules/
+build/
 
 *.pem
 *.tsr
